@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Crear una instancia EC2 con imagen de docker hub
+
+Resources:
+  GrupoSeguridadAutomatico:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Permitir acceso HTTP desde Internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  InstanciaEC2Automatica:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-06971c49acd687c30
+      SecurityGroupIds:
+        - !Ref GrupoSeguridadAutomatico
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo yum update -y
+          yum install docker -y
+          sudo service docker start
+          sudo usermod -a -G docker ec2-user
+          sudo docker pull hipermegared/inventario
+          docker run -d -p 80:8080 hipermegared/inventario
+
+Outputs:
+  URL:
+    Description: URL pública de la instancia
+    Value: !Sub http://${InstanciaEC2Automatica.PublicDnsName}
